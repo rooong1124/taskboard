@@ -7,11 +7,11 @@
 
 // ==================== 引入必要的模組 ====================
 // 引入 Next.js 的 Image 組件，用於優化圖片載入（雖然這個例子中沒有使用）
-import Image from "next/image";
+import Link from "next/link";
 // 引入 React 的 useState Hook，這是 React 用於管理組件狀態的核心功能
 // useState 允許我們在函數組件中使用狀態
 // 參考文件：https://react.dev/reference/react/useState
-import { useState } from "react";
+import { useState, useEffect, use } from "react";
 // 引入我們自定義的 TaskList 組件，用於顯示任務列表
 import TaskList from "../components/TaskList";
 
@@ -33,6 +33,14 @@ export default function Home() {
   // 初始值設為空字串 ''
   const [newTask, setNewTask] = useState('');
 
+  const [nextId, setNextId] = useState(1);
+
+  useEffect(() => {
+    const savedTasks = JSON.parse(localStorage.getItem("tasks")) || [];
+    setTasks(savedTasks);
+    const maxId = savedTasks.reduce((max, task) => Math.max(max, task.id), 0);
+    setNextId(maxId + 1);
+  }, []);
   // ========== 事件處理函數 ==========
   // 定義添加任務的函數，當點擊 "Add" 按鈕時會調用這個函數
   const addTask = () => {
@@ -41,13 +49,20 @@ export default function Home() {
     // 輸出新任務的值，用於調試
     console.log("newTask", newTask);
     
+    const newTaskObj = {
+      id: nextId,
+      title: newTask,
+      description: "",
+    };
+    
+
     // 創建新的任務陣列
     // [...tasks, newTask] 是展開運算符的用法，它會：
     // 1. 複製原有的 tasks 陣列中的所有項目
     // 2. 在陣列末尾添加新的任務
     // 這樣做是為了保持狀態的不可變性（Immutability）
     // 參考文件：https://react.dev/learn/updating-arrays-in-state
-    const updatedTasks = [...tasks, newTask];
+    const updatedTasks = [...tasks, newTaskObj];
     
     // 使用 setTasks 更新任務列表
     // 這會觸發 React 的重新渲染週期
@@ -59,7 +74,16 @@ export default function Home() {
     // 清空輸入框
     // 這會觸發輸入框的重新渲染，使其變為空
     setNewTask('');
+
+    setNextId(nextId + 1);
+    localStorage.setItem("tasks", JSON.stringify(updatedTasks));
   };
+
+  const handleDelete = (index) => {
+    const newTasks = tasks.filter((_, i) => i !== index);
+    setTasks(newTasks);
+    localStorage.setItem("tasks", JSON.stringify(newTasks));
+  }
 
   // ========== 渲染 UI ==========
   // 在 React 中，return 語句定義了組件的視覺結構
@@ -68,7 +92,7 @@ export default function Home() {
     // main 標籤作為頁面的主要容器
     // className 使用 Tailwind CSS 的工具類來設置樣式
     // p-4：表示 padding: 1rem
-    <main className="p-4">
+    <main className="p-4 max-w-md mx-auto">
       {/* 頁面標題 */}
       {/* text-2xl：設置字體大小，font-bold：設置字體粗細 */}
       <h1 className="text-2xl font-bold">Task Board</h1>
@@ -103,7 +127,7 @@ export default function Home() {
       {/* 當 tasks 狀態更新時，TaskList 會自動重新渲染 */}
       {/* 這體現了 React 的單向數據流：父組件 → 子組件 */}
       {/* 參考文件：https://react.dev/learn/passing-props-to-a-component */}
-      <TaskList tasks={tasks}/>
+      <TaskList tasks={tasks} onDelete={handleDelete}/>
     </main>
   );
 }
